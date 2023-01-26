@@ -165,11 +165,11 @@ config.iota = {
      *      https://github.com/Engineering-Research-and-Development/iotagent-opcua#type-configuration
      */
     types: {
-		Device: {
+		PLC: {
 			active: [
 				{
 					name: 'processStatus',
-					type: 'String'
+					type: 'Text'
 				}
 			],
 			lazy: [],
@@ -178,8 +178,8 @@ config.iota = {
 	},
 	contexts: [
 		{
-			id: 'urn:ngsiv2:I40Asset:Workstation001',
-			type: 'Device',
+			id: 'urn:ngsiv2:I40Asset:PLC:001',
+			type: 'PLC',
 			mappings: [
 				{
 					ocb_id: 'processStatus',
@@ -190,7 +190,20 @@ config.iota = {
 			]
 		}
 	],
-	contextSubscriptions: [],
+	contextSubscriptions: [
+		{
+			id: 'urn:ngsiv2:I40Asset:PLC:001',
+			type: 'PLC',
+			mappings: [
+				{
+					ocb_id: 'processStatus',
+					opcua_id: 'ns=4;i=198',
+					object_id: 'ns=4;i=198',
+					inputArguments: []
+				}
+			]
+		}
+	],
     /**
      * Default service, for IoT Agent installations that won't require preregistration.
      */
