@@ -27,7 +27,7 @@ config.iota = {
     /**
      * Configures the log level. Appropriate values are: FATAL, ERROR, INFO, WARN and DEBUG.
      */
-    logLevel: 'DEBUG',
+    logLevel: process.env.LOGLEVEL,
     /**
      * When this flag is active, the IoTAgent will add the TimeInstant attribute to every entity created, as well
      * as a TimeInstant metadata to each attribute, with the current timestamp.
@@ -185,7 +185,7 @@ config.iota = {
 	contexts: [
 		{
 			id: process.env.DEVICE_ID,
-			type: process.env.CONTEXTS_TYPE,
+			type: process.env.DEVICE_TYPE,
 			mappings: [
 				{
 					ocb_id: process.env.OCB_ID,
