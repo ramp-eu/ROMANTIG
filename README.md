@@ -1,10 +1,16 @@
-# ROMANTIG ROSE-AP [OEE](https://www.oee.com/) Calculator
+[<img src="img/logo.png" alt="RAMP" width="250" height="auto">](https://github.com/ramp-eu)
 
 [![NGSI v2](https://img.shields.io/badge/NGSI-v2-5dc0cf.svg)](https://fiware-ges.github.io/orion/api/v2/stable/)
 [![FIWARE Core Context Management](https://nexus.lab.fiware.org/repository/raw/public/badges/chapters/core.svg)](https://github.com/FIWARE/catalogue/blob/master/core/README.md)
+<!-- 
 [![Support badge](https://img.shields.io/badge/tag-fiware-orange.svg?logo=stackoverflow)](https://stackoverflow.com/questions/tagged/fiware)
-<!-- [![License: MIT](https://img.shields.io/github/license/fiware/tutorials.Time-Series-Data.svg)](https://opensource.org/licenses/MIT) -->
+[![License: MIT](https://img.shields.io/github/license/fiware/tutorials.Time-Series-Data.svg)](https://opensource.org/licenses/MIT)
+[<img src="https://ramp.eu/assets/logo/ramp_logo_white.png" alt="RAMP" width="auto" height="20">](https://github.com/ramp-eu)
+ -->
+[<img src="https://ramp-eu.github.io/RAMP/img/ramp.png" alt="RAMP" width="auto" height="30">](https://github.com/ramp-eu)
 
+
+# ROMANTIG ROSE-AP [OEE](https://www.oee.com/) Calculator
 This ROSE-AP is intended as a microservice for automatic [OEE](https://www.oee.com/), and related metrics, calculation. The service works by connecting to a [CrateDB](https://crate.io/) database, where information about the context of your target process are stored by [Orion](https://fiware-orion.readthedocs.io/en/master/) through [QuantumLeap](https://quantumleap.readthedocs.io/en/latest/) services.
 
 ## Table of Contents
@@ -28,18 +34,18 @@ Measuring [OEE](https://www.oee.com/) is important in industrial applications as
 ## Install
 ### Data Interface
 > **Warning**
-> The value of the `OCB_ID` .env variable must match with the data variable supllied.
+> The value of the `OCB_ID` variable inside the [.env](.env) file  must match with the name of variable supllied.
 > You can indifferently replace the value of the environment variable to match that of your variable, or call your variable as it is defined in the .env file.
-#### OPC-UA
-If you would use the [OPC-UA](https://opcfoundation.org/) interface, in order to connect the IoT-Agent to an [OPC-UA](https://opcfoundation.org/) device, you just need to edit the relative section (OPC-UA Device Variables) in the beginning of the [`.env`](.env) file:
-- `IOTA_OPCUA_ENDPOINT` Endpoint of the [OPC-UA](https://opcfoundation.org/) Device to be reached by the IoT Agent (i.e. the PLC adress)
+#### OPC UA
+If you would use the [OPC UA](https://opcfoundation.org/) interface, in order to connect the IoT-Agent to an [OPC UA](https://opcfoundation.org/) device, you just need to edit the relative section (OPC UA Device Variables) in the beginning of the [.env](.env) file:
+- `IOTA_OPCUA_ENDPOINT` Endpoint of the [OPC UA](https://opcfoundation.org/) Device to be reached by the IoT Agent (i.e. the PLC adress)
 - `OCB_ID` The name of the Variable which has values about the machine state
-- `OPCUA_ID` The [OPC-UA](https://opcfoundation.org/) ID of the Variable which hold the machine state values
+- `IOTA_OPCUA_ID` The [OPC UA](https://opcfoundation.org/) ID of the Variable which hold the machine state values
 
-You can check this value with any [OPC-UA](https://opcfoundation.org/) Client
+You can check this value with any [OPC UA](https://opcfoundation.org/) Client
 
 #### Other protocols
-If you whis to use any other protocol, you need to replace the IoT-Agent, and configure it to make the data available to the [Orion Context Broker](https://fiware-orion.readthedocs.io/en/latest/).
+If you whis to use any other protocol, you need to replace the OPC UA IoT-Agent with another one from the [IoT Agent Catalogue](https://github.com/FIWARE/catalogue/tree/master/iot-agents), and configure it to make the data available to the [Orion Context Broker](https://fiware-orion.readthedocs.io/en/latest/).
 
 ### ROSE-AP
 In order to compute the [OEE](https://www.oee.com/), the ROSE-AP service must know if each possible process state that is found on the context has to be considered:
@@ -53,41 +59,42 @@ To do so, please change the `.config` file found in the `oee_service` folder, pr
 > **Warning**
 > Be sure that the name of the states written in the config file perfectly match those that are written by your process, so that the microservice can correctly identify them
 
-- Good ends
+#### Good ends
 The machine states to be considered as a successful conclusion of the production cycle (i.e. an item is successfully created):
 
-	ENDSGOOD=In Placing	[syntax: State 01,State 02, ... ,State nn]
+	ENDS_GOOD=In Placing	[syntax: State 01,State 02, ... ,State nn]
 
-- Bad ends
+#### Bad ends
 The machine states to be considered as a bad conclusion of the production cycle (i.e. an item is defective or faulty and has to be discarded):
-	ENDSBAD=In Trashing	[syntax: State 01,State 02, ... ,State nn]
 
-- Up time
+	ENDS_BAD=In Trashing	[syntax: State 01,State 02, ... ,State nn]
+
+#### Up time
 The machine states to be considered as productive times:
 
-	TIMESUP=In Picking,In Welding,In QC,In Placing	[syntax: State 01,State 02,...,State nn]
+	TIMES_UP=In Picking,In Welding,In QC,In Placing	[syntax: State 01,State 02,...,State nn]
 	
-- Down time
+#### Down time
 The machine states to be considered as downtime:
 
 > **Note**
 > To avoid unexpected behavior (i.e., not updating statistics if the machine stops for any reason), a `Timeout` variable should be provided that fires cyclically when each new timeout is reached.
 
-	TIMESDOWN=Idle,In Reworking,In QC from rework,In Trashing,Timeout	[syntax: State 01,State 02,...,State nn]
+	TIMES_DOWN=Idle,In Reworking,In QC from rework,In Trashing,Timeout	[syntax: State 01,State 02,...,State nn]
 
-- Time step
+#### Time step
 The timestep to group [OEE](https://www.oee.com/) stats:
 > **Note**
 > Since OEE values are calculated from the data stored in the database, it is possible to increase or decrease the timestep value by updating the data grouping over the entire stored range without losing any information.
 
-	TIMESTEP=5 minute	[syntax: <quantity> <[second|minute|hour|day|week|month|year]>]
+	TIME_STEP=5 minute	[syntax: <quantity> <[second|minute|hour|day|week|month|year]>]
 
-- Ideal time
+#### Ideal time
 The duration of the process in ideal condition, this represents a theoretical lower bound.
 
-	IDEALTIME=20 second	[syntax: <quantity> <[second|minute|hour|day|week|month|year]>]
+	TIME_IDEAL=20 second	[syntax: <quantity> <[second|minute|hour|day|week|month|year]>]
 
-- Initial date and time
+#### Initial date and time
 The date and time to be considered as the origin of data grouping:
 
 	START_DATE=2023-01-01	[syntax: <YYYY-MM-DD>]
@@ -131,9 +138,9 @@ The process cycle and the respective up and down time states are shown below:
 ```mermaid
 flowchart LR
     Picking --> Welding --> QC
-    QC -- Good Part --> Placing
+    QC -- &nbspGood Part&nbsp--> Placing
     QC --> Rework --> QC
-    QC -- Bad Part --> Trashing
+    QC -- &nbspBad Part&nbsp--> Trashing
     Placing & Trashing --> Idle --> Picking
 
 classDef Gainsboro fill:Gainsboro,stroke:#333,color:#333
@@ -146,16 +153,16 @@ linkStyle 3,4,5,6,7,8 stroke:LightCoral;
 
 In general, we suggest you to adopt a state space representation similar to the one above for your target process, in order to clearly highlight every step in the cycle and attribute it the correct value for up or down time. The state representation (the ontology of the system) should not be too detailed (i.e. too many states) or too general (i.e. one or two states) because of unnecessary additional workload or possible loss of information.
 
-As it can be seen in the docker-compose file, the PLC responsible for controlling our process is directly connected to [Orion Context Broker](https://fiware-orion.readthedocs.io/en/latest/) through the [IoT Agent for OPC-UA](https://iotagent-opcua.readthedocs.io/en/latest/) servers, which is used to write the process states directly on the CrateDB (through QuantumLeap) where they will be read and processed by our [OEE](https://www.oee.com/) calculator.
+As it can be seen in the docker-compose file, the PLC responsible for controlling our process is directly connected to [Orion Context Broker](https://fiware-orion.readthedocs.io/en/latest/) through the [IoT Agent for OPC UA](https://iotagent-opcua.readthedocs.io/en/latest/) servers, which is used to write the process states directly on the CrateDB (through QuantumLeap) where they will be read and processed by our [OEE](https://www.oee.com/) calculator.
 
 ## Architecture
 
-This application builds on the following components [ROSE-AP RomanTIG](https://github.com/claret-srl/romantig_RAMP_ROSEAP). It will use the following FIWARE components: the [Orion Context Broker](https://fiware-orion.readthedocs.io/en/latest/), the [QuantumLeap](https://smartsdk.github.io/ngsi-timeseries-api/) and the [IoT Agent for OPC-UA](https://iotagent-opcua.readthedocs.io/en/latest/).
+This application builds on the following components [ROSE-AP RomanTIG](https://github.com/claret-srl/romantig_RAMP_ROSEAP). It will use the following FIWARE components: the [Orion Context Broker](https://fiware-orion.readthedocs.io/en/latest/), the [QuantumLeap](https://smartsdk.github.io/ngsi-timeseries-api/) and the [IoT Agent for OPC UA](https://iotagent-opcua.readthedocs.io/en/latest/).
 
 Therefore the overall architecture will consist of the following elements:
 -   The **FIWARE Generic Enablers**:
     -   The FIWARE [Orion Context Broker](https://fiware-orion.readthedocs.io/en/latest/) which will receive requests using [NGSI-v2](https://fiware.github.io/specifications/OpenAPI/ngsiv2)
-    -   The FIWARE [IoT Agent for OPC-UA](https://iotagent-opcua.readthedocs.io/en/latest/) which will receive northbound measurements from the dummy IoT devices in [OPC-UA](https://iotagent-opcua.readthedocs.io/en/latest/)
+    -   The FIWARE [IoT Agent for OPC UA](https://iotagent-opcua.readthedocs.io/en/latest/) which will receive northbound measurements from the dummy IoT devices in [OPC UA](https://iotagent-opcua.readthedocs.io/en/latest/)
         format and convert them to [NGSI-v2](https://fiware.github.io/specifications/OpenAPI/ngsiv2) requests for the context broker to alter the state of the context entities
     -   FIWARE [QuantumLeap](https://quantumleap.readthedocs.io/en/latest/) subscribed to context changes and persisting them into a **CrateDB** database
 -   A [MongoDB](https://www.mongodb.com/) database:
@@ -164,7 +171,7 @@ Therefore the overall architecture will consist of the following elements:
 -   A [CrateDB](https://crate.io/) database:
     -   Used as a data sink to hold time-based historical context data
     -   offers an HTTP endpoint to interpret time-based data queries
--   A **Context Provider**: - Should be supplied by integrator, as an active OPC-UA device. It could be replaced with any other protocol as far as the relative IoT Agent is used instead of the [OPC-UA](https://iotagent-opcua.readthedocs.io/en/latest/) one.
+-   A **Context Provider**: - Should be supplied by integrator, as an active OPC UA device. It could be replaced with any other protocol as far as the relative IoT Agent is used instead of the [OPC UA](https://iotagent-opcua.readthedocs.io/en/latest/) one.
 
 Since all interactions between the elements are initiated by HTTP requests, the entities can be containerized and run from exposed ports.
 
@@ -177,7 +184,7 @@ The overall architecture can be seen below:
     QC(Quality Control)
     Device(Device)
     PLC(PLC)
-    IoT-Agent(IoT-Agent):::Cyan
+    IoT-Agent(IoT-Agent \n for OPC UA):::Cyan
     Orion(Orion \n Context Broker):::DarkBlue
     Quantumleap(Quantum \n Leap):::DarkBlue
     ROSE-AP(ROSE-AP \n RomanTIG):::Claret
@@ -186,12 +193,12 @@ The overall architecture can be seen below:
     Crate[(CrateDB)]
     Grafana(Grafana):::Grafana
 
-    Orion & IoT-Agent <--27017:27017---> Mongo
-    ROSE-AP <--1026:1026--> Orion
-    Quantumleap <--6379:6379--> Redis
-    Welder & Robot & QC & Device <--PROFINET--> PLC <--OPC-UA--> IoT-Agent <--4041:4041--> Orion <--8668:8668--> Quantumleap
-    Grafana <--4200:4200--> Crate
-    ROSE-AP  & Quantumleap <--4200:4200--> Crate
+    Orion & IoT-Agent <--&nbsp27017:27017&nbsp---> Mongo
+    ROSE-AP <--&nbsp1026:1026&nbsp--> Orion
+    Quantumleap <--&nbsp6379:6379&nbsp--> Redis
+    Welder & Robot & QC & Device <--&nbspPROFINET&nbsp--> PLC <--&nbspOPC UA&nbsp--> IoT-Agent <--&nbsp4041:4041&nbsp--> Orion <--&nbsp8668:8668&nbsp--> Quantumleap
+    Grafana <--&nbsp4200:4200&nbsp--> Crate
+    ROSE-AP  & Quantumleap <--&nbsp4200:4200&nbsp--> Crate
     
 classDef DarkBlue fill:#233C68,stroke:#333,color:#FFF
 classDef Cyan fill:#45D3DD,stroke:#333,color:#333
@@ -310,7 +317,7 @@ Then run the utility `dos2unix_Recursively.sh`, in the root directory, to conver
 ./utility/dos2unix_Recursively.sh
 ```
 
-### [Orion Context Broker](https://fiware-orion.readthedocs.io/en/latest/), [QuantumLeap](https://smartsdk.github.io/ngsi-timeseries-api/), [IoT Agent for OPC-UA](https://iotagent-opcua.readthedocs.io/en/latest/)
+### [Orion Context Broker](https://fiware-orion.readthedocs.io/en/latest/), [QuantumLeap](https://smartsdk.github.io/ngsi-timeseries-api/), [IoT Agent for OPC UA](https://iotagent-opcua.readthedocs.io/en/latest/)
 To debug entity, device, registration, subscription, and any other Context data, please use [Mongo Express](#Mongo), as described in the [Mongo](#Mongo) section.
 
 ### Mongo
