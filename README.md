@@ -2,15 +2,12 @@
 
 # Dev
 - [ ] Restore docker scan in ./services
-- [ ] Since the OEE computation is made inside Crate-DB, with views, should a place a dedicate service in the docker-compose?
+- [x] Since the OEE computation is made inside Crate-DB, with views, should a place a dedicate service in the docker-compose?
+    - No, should use crate DB API
 - [ ] Undesired behavior:
  - Since the stats keep updating at each variable state changes, if the machine goes to idle the stat do not updates anymore, solutions:
-	- [ ] Cycling firing a "Timeout" state, followed by an "Idle" state:
-		- From the PLC
-		- From the ROSE-AP
-	- [ ] Check if the machine should be in production
-		- Checking the shift scheduling
-		- Provision and HTTP endpoint to turn on/off the calculator
+    - [x] Check the shif production from plc
+
 - [ ] ROSE AP naming convention
 	- [ ] Repository
 	- [ ] Folder or subfolder
@@ -20,12 +17,21 @@
 		- rose-ap_romantig
 		- iot-agent
 		- iot-agent/OPC-UA
+
 - [ ] The Docker service images should be pushed to Docker Hub/Github registry?
+
 - [ ] Step-by-Step video tutorial
 	- Any reference?
 	- Could be only screen capture?
+- [x] Dataset:
+        - [ ] csv, json from crateDB
+        - [x] oppure simulare il PLC
+
 - [ ] Github docs
 	- Any suggestions?
+    - Specificare la necessità di modificare il type nel config.js
+
+- [ ] Flexibility
 
 [![NGSI v2](https://img.shields.io/badge/NGSI-v2-5dc0cf.svg)](https://fiware-ges.github.io/orion/api/v2/stable/)
 [![FIWARE Core Context Management](https://nexus.lab.fiware.org/repository/raw/public/badges/chapters/core.svg)](https://github.com/FIWARE/catalogue/blob/master/core/README.md)
@@ -60,9 +66,13 @@ Measuring [OEE](https://www.oee.com/) is important in industrial applications as
 
 ## Install
 ### Data Interface
+
 > **Warning**
+> 
 > The value of the `OCB_ID` variable inside the [.env](.env) file  must match with the name of variable supllied.
+> 
 > You can indifferently replace the value of the environment variable to match that of your variable, or call your variable as it is defined in the .env file.
+
 #### OPC UA
 If you would use the [OPC UA](https://opcfoundation.org/) interface, in order to connect the IoT-Agent to an [OPC UA](https://opcfoundation.org/) device, you just need to edit the relative section (OPC UA Device Variables) in the beginning of the [.env](.env) file:
 - `IOTA_OPCUA_ENDPOINT` Endpoint of the [OPC UA](https://opcfoundation.org/) Device to be reached by the IoT Agent (i.e. the PLC adress)
@@ -72,7 +82,7 @@ If you would use the [OPC UA](https://opcfoundation.org/) interface, in order to
 You can check this value with any [OPC UA](https://opcfoundation.org/) Client
 
 #### Other protocols
-If you whis to use any other protocol, you need to replace the OPC UA IoT-Agent with another one from the [IoT Agent Catalogue](https://github.com/FIWARE/catalogue/tree/master/iot-agents), and configure it to make the data available to the [Orion Context Broker](https://fiware-orion.readthedocs.io/en/latest/).
+If you whis to use any other protocol, you need to replace the OPC UA IoT-Agent with another one from the [FIWARE Catalogue](https://github.com/FIWARE/catalogue/), and configure it to make the data available to the [Orion Context Broker](https://fiware-orion.readthedocs.io/en/latest/).
 
 ### ROSE-AP
 In order to compute the [OEE](https://www.oee.com/), the ROSE-AP service must know if each possible process state that is found on the context has to be considered:
@@ -84,6 +94,7 @@ In order to compute the [OEE](https://www.oee.com/), the ROSE-AP service must kn
 To do so, please change the `.config` file found in the `oee_service` folder, prior to run the service, setting the following variables:
 
 > **Warning**
+> 
 > Be sure that the name of the states written in the config file perfectly match those that are written by your process, so that the microservice can correctly identify them
 
 #### Good ends
@@ -105,6 +116,7 @@ The machine states to be considered as productive times:
 The machine states to be considered as downtime:
 
 > **Note**
+> 
 > To avoid unexpected behavior (i.e., not updating statistics if the machine stops for any reason), a `Timeout` variable should be provided that fires cyclically when each new timeout is reached.
 
 	TIMES_DOWN=Idle,In Reworking,In QC from rework,In Trashing,Timeout	[syntax: State 01,State 02,...,State nn]
@@ -112,6 +124,7 @@ The machine states to be considered as downtime:
 #### Time step
 The timestep to group [OEE](https://www.oee.com/) stats:
 > **Note**
+> 
 > Since OEE values are calculated from the data stored in the database, it is possible to increase or decrease the timestep value by updating the data grouping over the entire stored range without losing any information.
 
 	TIME_STEP=5 minute	[syntax: <quantity> <[second|minute|hour|day|week|month|year]>]
@@ -139,21 +152,25 @@ The date and time to be considered as the origin of data grouping:
 - To apply required settings to the host, and start up all the services in the containers run:
 `sudo ./services up`
 
+### Demo
+For demo purspose only, add `demo` after the flag `--build` and `up` in order to build and startup also the demo server.
+
+- To build the Docker image for the OPC-UA Server demo (Remove the old image if any, build the new image and performs a vulnerability scan):
+`./services --build demo`
+
+- To apply the required settings to the host and start all services in the containers, including the OPC/UA demo server, run:
+`sudo ./services up demo`
+
 - Now you can open Grafana on [localhost:3000](localhost:3000) `user:admin` `password:admin` and select predefined "RomanTIG Overall Equipment Effectiveness" dashboard to visualize [OEE](https://www.oee.com/) live data. You can freely add plots and other tables by using the "add new panel" function of Grafana, than save as a [`dashboard.json`](.\grafana\dashboards\dashboard.json) file in `.\grafana\dashboards\` directory to persist the changes after rebooting the container or the Grafana service.
 
-- To stop all the services in the containers execute:
-`./services down`
-- To only pull all images from Docker Hub without start the services in the Docker Container:
-`./services --pull`
-- To stop, build and start the services in the Docker Container:
-`sudo ./services --debug`
-- To see the help function of the service script
-`./services --help`
-
-- To delete the Volumes and the Networks
+- To stop all the services in the containers execute: `./services down`
+- To only pull all images from Docker Hub without start the services in the Docker Container: `./services --pull`
+- To stop, build and start the services in the Docker Container: `sudo ./services --debug`
+- To see the help function of the service script `./services --help`
 > **Warning**
-> This operation will ERASE ALL the Docker Volumes and all the data stored in the databases!
-`./services --remove`
+> 
+> Teh following operation will **erase** all the Docker Volumes and **all the data stored in the databases!**
+- To delete the Volumes and the Networks `./services --remove`
 
 ## Example
 ![Dashboard](./img/dashboard.png)
@@ -166,7 +183,7 @@ The process cycle and the respective up and down time states are shown below:
 flowchart LR
     Picking --> Welding --> QC
     QC -- &nbspGood Part&nbsp--> Placing
-    QC --> Rework --> QC
+    QC <--> Rework
     QC -- &nbspBad Part&nbsp--> Trashing
     Placing & Trashing --> Idle --> Picking
 
@@ -175,30 +192,32 @@ classDef Gainsboro fill:Gainsboro,stroke:#333,color:#333
 class Picking,Placing,QC,Welding,upTime,Idle,Trashing,Rework,QC_Rework Gainsboro
 
 linkStyle 0,1,2 stroke:lightgreen,border-color:lightgreen;
-linkStyle 3,4,5,6,7,8 stroke:LightCoral;
+linkStyle 3,4,5,6,7 stroke:LightCoral;
 ```
 
 In general, we suggest you to adopt a state space representation similar to the one above for your target process, in order to clearly highlight every step in the cycle and attribute it the correct value for up or down time. The state representation (the ontology of the system) should not be too detailed (i.e. too many states) or too general (i.e. one or two states) because of unnecessary additional workload or possible loss of information.
 
-As it can be seen in the docker-compose file, the PLC responsible for controlling our process is directly connected to [Orion Context Broker](https://fiware-orion.readthedocs.io/en/latest/) through the [IoT Agent for OPC UA](https://iotagent-opcua.readthedocs.io/en/latest/) servers, which is used to write the process states directly on the CrateDB (through QuantumLeap) where they will be read and processed by our [OEE](https://www.oee.com/) calculator.
+As it can be seen in the docker-compose file, the PLC responsible for controlling our process is directly connected to [Orion Context Broker](https://fiware-orion.readthedocs.io/en/latest/) through the [IoT Agent for OPC UA](https://iotagent-opcua.readthedocs.io/en/latest/), which is used to write the process states on the CrateDB (through QuantumLeap) where they will be read and processed by our [OEE](https://www.oee.com/) calculator.
 
 ## Architecture
 
-This application builds on the following components [ROSE-AP RomanTIG](https://github.com/claret-srl/romantig_RAMP_ROSEAP). It will use the following FIWARE components: the [Orion Context Broker](https://fiware-orion.readthedocs.io/en/latest/), the [QuantumLeap](https://smartsdk.github.io/ngsi-timeseries-api/) and the [IoT Agent for OPC UA](https://iotagent-opcua.readthedocs.io/en/latest/).
+ [ROSE-AP RomanTIG](https://github.com/claret-srl/romantig_RAMP_ROSEAP) use the following FIWARE components:
+ - [Orion Context Broker](https://fiware-orion.readthedocs.io/en/latest/)
+ - [QuantumLeap](https://smartsdk.github.io/ngsi-timeseries-api/)
+ - [IoT Agent for OPC UA](https://iotagent-opcua.readthedocs.io/en/latest/)
 
 Therefore the overall architecture will consist of the following elements:
 -   The **FIWARE Generic Enablers**:
     -   The FIWARE [Orion Context Broker](https://fiware-orion.readthedocs.io/en/latest/) which will receive requests using [NGSI-v2](https://fiware.github.io/specifications/OpenAPI/ngsiv2)
-    -   The FIWARE [IoT Agent for OPC UA](https://iotagent-opcua.readthedocs.io/en/latest/) which will receive northbound measurements from the dummy IoT devices in [OPC UA](https://iotagent-opcua.readthedocs.io/en/latest/)
-        format and convert them to [NGSI-v2](https://fiware.github.io/specifications/OpenAPI/ngsiv2) requests for the context broker to alter the state of the context entities
     -   FIWARE [QuantumLeap](https://quantumleap.readthedocs.io/en/latest/) subscribed to context changes and persisting them into a **CrateDB** database
+    -   The Engineering [IoT Agent for OPC UA](https://iotagent-opcua.readthedocs.io/en/latest/) which will receive northbound measurements from the dummy IoT devices in [OPC UA](https://iotagent-opcua.readthedocs.io/en/latest/) format and convert them to [NGSI-v2](https://fiware.github.io/specifications/OpenAPI/ngsiv2) requests for the context broker to alter the state of the context entities.
 -   A [MongoDB](https://www.mongodb.com/) database:
     -   Used by the **Orion Context Broker** to hold context data information such as data entities, subscriptions and registrations
     -   Used by the **IoT Agent** to hold device information such as device URLs and Keys
 -   A [CrateDB](https://crate.io/) database:
     -   Used as a data sink to hold time-based historical context data
     -   offers an HTTP endpoint to interpret time-based data queries
--   A **Context Provider**: - Should be supplied by integrator, as an active OPC UA device. It could be replaced with any other protocol as far as the relative IoT Agent is used instead of the [OPC UA](https://iotagent-opcua.readthedocs.io/en/latest/) one.
+-   A **Context Provider**: - For demo purpose a dummy OPC-UA server has been provided. In production should be supplied by integrator, as an active OPC UA device. It could be replaced with any other protocol as far as the relative IoT Agent is used instead of the [OPC UA](https://iotagent-opcua.readthedocs.io/en/latest/) one. 
 
 Since all interactions between the elements are initiated by HTTP requests, the entities can be containerized and run from exposed ports.
 
@@ -209,7 +228,7 @@ The overall architecture can be seen below:
     Welder(Welder)
     Robot(Robot)
     QC(Quality Control)
-    Device(Device)
+    Actuator(Servo Actuator)
     PLC(PLC)
     IoT-Agent(IoT-Agent \n for OPC UA):::Cyan
     Orion(Orion \n Context Broker):::DarkBlue
@@ -223,7 +242,7 @@ The overall architecture can be seen below:
     Orion & IoT-Agent <--&nbsp27017:27017&nbsp---> Mongo
     ROSE-AP <--&nbsp1026:1026&nbsp--> Orion
     Quantumleap <--&nbsp6379:6379&nbsp--> Redis
-    Welder & Robot & QC & Device <--&nbspPROFINET&nbsp--> PLC <--&nbspOPC UA&nbsp--> IoT-Agent <--&nbsp4041:4041&nbsp--> Orion <--&nbsp8668:8668&nbsp--> Quantumleap
+    Welder & Robot & QC & Actuator <--&nbspPROFINET&nbsp--> PLC <--&nbspOPC UA&nbsp--> IoT-Agent <--&nbsp4041:4041&nbsp--> Orion <--&nbsp8668:8668&nbsp--> Quantumleap
     Grafana <--&nbsp4200:4200&nbsp--> Crate
     ROSE-AP  & Quantumleap <--&nbsp4200:4200&nbsp--> Crate
     
@@ -233,7 +252,7 @@ classDef Gainsboro fill:Gainsboro,stroke:#333,color:#333
 classDef Grafana fill:#333,Stroke:#282828,color:#FCB35F
 classDef Claret fill:#0999D0,Stroke:#F8F8F8,color:#F8F8F8
 
-class Crate,Mongo,Redis,Welder,Robot,QC,Device,PLC Gainsboro
+class Crate,Mongo,Redis,Welder,Robot,QC,Actuator,PLC Gainsboro
 ```
 
 ## Context
@@ -248,35 +267,32 @@ curl -X GET \
 Will result in the following output:
 ```
 [
+  ... ,
   {
     "id": "urn:ngsiv2:I40Asset:PLC:001",
     "type": "PLC",
     "Availability": {
       "type": "Float",
-      "value": 0.646473505,
-      "metadata": {}
+      "value": 0.646473505
     },
     "OEE": {
       "type": "Float",
-      "value": 0.302358872,
-      "metadata": {}
+      "value": 0.302358872
     },
     "Performance": {
       "type": "Float",
-      "value": 0.701557458,
-      "metadata": {}
+      "value": 0.701557458
     },
     "Quality": {
       "type": "Float",
-      "value": 0.666666667,
-      "metadata": {}
+      "value": 0.666666667
     },
     "processStatus": {
       "type": "Text",
-      "value": "In Placing",
-      "metadata": {}
+      "value": "In Placing"
     }
-  }
+  },
+  ...
 ]
 ```
 The attribute it's updated each time the processStatus values change.
