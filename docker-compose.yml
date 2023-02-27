@@ -22,7 +22,7 @@ services:
   # Orion is the context broker
   orion:
     labels:
-      org.fiware: ${ORG_FIWARE}
+      org.label: ${ORG}
     image: fiware/orion:${ORION_VERSION}
     container_name: ${ORION}
     depends_on:
@@ -43,7 +43,7 @@ services:
   # Quantum Leap is persisting Short Term History to CrateDB
   quantumleap:
     labels:
-      org.fiware: ${ORG_FIWARE}
+      org.label: ${ORG}
     image: orchestracities/quantumleap:${QUANTUMLEAP_VERSION}
     container_name: ${QUANTUMLEAP}
     ports:
@@ -63,10 +63,10 @@ services:
       interval: 5s
 
 
-  # IoT-Agent
-  iot-agent:
+  # IoT-Agent for OPC-UA protocol
+  iot-agent-opcua:
     labels:
-      org.fiware: ${ORG_FIWARE}
+      org.label: ${ORG}
     image: iotagent4fiware/iotagent-opcua:${OPC_UA_VERSION}
     container_name: ${IOTA}
     depends_on:
@@ -78,19 +78,18 @@ services:
       - ${IOTA_NORTH_PORT}:4041
       - ${IOTA_SOUTH_PORT}:9229
     volumes:
-      - ./iot-agent/config.js:/opt/iotagent-opcua/conf/config.js
+      - ./iot-agent/opcua.js:/opt/iotagent-opcua/conf/config.js
     environment:
-      - LOGLEVEL=${LOG_LEVEL}
+      - OCB_ID_PROCESS=${OCB_ID_PROCESS}
+      - OPCUA_ID_PROCESS=${OPCUA_ID_PROCESS}
+      - DEVICE_ID=${DEVICE_ID_BASE}:${DEVICE_TYPE}:001
+      - DEVICE_TYPE=${DEVICE_TYPE}
       - FIWARE_SERVICE=${FIWARE_SERVICE}
       - FIWARE_SERVICEPATH=${FIWARE_SERVICEPATH}
-      - DEVICE_ID=${DEVICE_ID}
-      - DEVICE_TYPE=${DEVICE_TYPE}
-      - OCB_ID=${OCB_ID}
-      - IOTA_OPCUA_ID=${IOTA_OPCUA_ID}
-      - IOTA_OPCUA_MT_ENTITY_ID=${CONTEXTS_ID}
-      - IOTA_OPCUA_ENDPOINT=${IOTA_OPCUA_ENDPOINT}	          # Endpoint of OPC UA Server
       - IOTA_FALLBACK_TENANT=${FIWARE_SERVICE}
       - IOTA_FALLBACK_PATH=${FIWARE_SERVICEPATH}
+      - IOTA_OPCUA_ENDPOINT=opc.tcp://${OPCUA_ENDPOINT}:${OPCUA_PORT}/         # Endpoint of OPC UA Server
+      - IOTA_OPCUA_MT_ENTITY_ID=${IOTA_OPCUA_MT_ENTITY_ID}
       - IOTA_OPCUA_SECURITY_MODE=None						              # Security mode for OPC UA connection
       - IOTA_OPCUA_SECURITY_POLICY=None					              # Security policy for OPC UA connection
       - IOTA_OPCUA_SECURITY_USERNAME=null                     # Security username for OPC UA connection
@@ -104,12 +103,15 @@ services:
       - IOTA_MONGO=${IOTA}						                        # The name of the database used in MongoDB
       - IOTA_PROVIDER_URL=http://${IOTA}:${IOTA_NORTH_PORT}		# URL passed to the Context Broker when commands are registered, used as a forwarding URL location when the Context Broker issues a command to a device
       - IOTA_OPCUA_UNIQUE_SUBSCRIPTION=false				          # Boolean property to assess whether subscribe once for multiple OPC UA nodes or not
+      - LOGLEVEL=${LOG_LEVEL}
+    healthcheck:
+      test: curl --fail -s http://localhost:${IOTA_NORTH_PORT}/version || exit 1
 
 
   # Databases
   db-mongo:
     labels:
-      org.fiware: ${ORG_FIWARE}
+      org.label: ${ORG}
     image: mongo:${MONGO_VERSION}
     container_name: ${MONGO}
     expose:
@@ -128,11 +130,11 @@ services:
       interval: 5s
   
   
-  # Mongo GUI, to chek if Mongo it's working just for dev purpose
+  # # Mongo GUI, to chek if Mongo it's working just for dev purpose
   # mongo-express:
   #   image: mongo-express:1.0.0-alpha
   #   labels:
-  #     org.fiware: ${ORG_FIWARE}
+  #     org.label: ${ORG}
   #   container_name: mongo-express
   #   environment:
   #     # ME_CONFIG_MONGODB_ADMINUSERNAME: admin
@@ -150,7 +152,7 @@ services:
 
   db-crate:
     labels:
-      org.fiware: ${ORG_FIWARE}
+      org.label: ${ORG}
     image: crate:${CRATE_VERSION}
     container_name: ${CRATE}
     ports:
@@ -169,7 +171,7 @@ services:
 
   db-redis:
     labels:
-      org.fiware: ${ORG_FIWARE}
+      org.label: ${ORG}
     image: redis:${REDIS_VERSION}
     container_name: ${REDIS}
     networks:
@@ -186,7 +188,7 @@ services:
   # # Redis GUI, to chek if Redis it's working just for dev purpose
   # redisinsight:
   #   labels:
-  #     org.fiware: ${ORG_FIWARE}
+  #     org.label: ${ORG}
   #   image: redislabs/redisinsight:1.13.1
   #   container_name: "redisinsight"
   #   networks:
@@ -203,14 +205,9 @@ services:
   # Dashboard
   grafana:
     labels:
-      org.fiware: ${ORG_FIWARE}
+      org.label: ${ORG}
     image: grafana/grafana:${GRAFANA_VERSION}
     container_name: ${GRAFANA}
-    # depends_on:
-    #   db-crate:
-    #     condition: service_healthy
-    #   oee-service: 
-    #     condition: service_healthy
     ports:
       - "${GRAFANA_PORT}:3000"
     environment:
@@ -221,7 +218,6 @@ services:
       - CRATE_TABLE=$CRATE_TABLE
       - CRATE_TABLE_DURATION=$CRATE_TABLE_DURATION
       - CRATE_TABLE_OEE=$CRATE_TABLE_OEE
-      # - GF_INSTALL_PLUGINS=https://github.com/orchestracities/grafana-map-plugin/archive/master.zip;grafana-map-plugin,grafana-clock-panel,grafana-worldmap-panel
     volumes:
       - ${GRAFANA}:/var/lib/grafana
       - ./grafana/datasources:/etc/grafana/provisioning/datasources
@@ -232,7 +228,7 @@ services:
   # ROSE-AP
   oee-service:
     labels:
-      org.fiware: ${ORG_FIWARE}
+      org.label: ${ORG}
     image: ${ROSEAP_OEE}
     container_name: ${ROSEAP_OEE}
     depends_on:
@@ -240,15 +236,17 @@ services:
         condition: service_healthy
       orion:
         condition: service_healthy
+      iot-agent-opcua:
+        condition: service_started
     volumes:
-      - ./${ROSEAP_OEE}/.config:/${ROSEAP_OEE}/.config
-      - ./.env:/${ROSEAP_OEE}/.env
+      - ./${ROSEAP_OEE}/.config:/app/.config
+      - ./.env:/app/.env
     ports:
       - ${ROSEAP_OEE_PORT}:8008
     networks:
       - default
-    stdin_open: true # docker run -i
-    tty: true        # docker run -t
+    stdin_open: true
+    tty: true
     # healthcheck:
     #   test: curl -s -o /dev/null -w %{http_code} "http://${ROSEAP_OEE}:${ROSEAP_OEE_PORT}/version" == 200 || exit 1
     #   interval: 5s
@@ -256,25 +254,24 @@ services:
   # OPC-UA Demo Server
   opc-ua-demo-server:
     labels:
-      org.fiware: ${ORG_FIWARE}
-    image: ${DEMO_SERVER}
-    container_name: ${DEMO_SERVER}
-    hostname: ${OPCUA_ENDPOINT}
+      org.label: ${ORG}
+    image: ${OPCUA_ENDPOINT}
+    container_name: ${OPCUA_ENDPOINT}
     volumes:
-      - ./.env:/${DEMO_SERVER}/.env
+      - ./.env:/app/.env
     ports:
-      - ${DEMO_SERVER_PORT}:4880
+      - ${OPCUA_PORT}:${OPCUA_PORT}
     networks:
       - default
-    stdin_open: true # docker run -i
-    tty: true        # docker run -t
+    stdin_open: true
+    tty: true
     profiles:
         - demo
 
 networks:
   default:
     labels:
-      org.fiware: ${ORG_FIWARE}
+      org.label: ${ORG}
 
 
 volumes:
