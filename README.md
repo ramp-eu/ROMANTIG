@@ -7,7 +7,7 @@
 
 # ROMANTIG ROSE-AP [OEE](https://www.oee.com/) Calculator
 
-This ROSE-AP is intended as a microservice for automatic [OEE](https://www.oee.com/), and related metrics, calculation. The service works creating the appropiete vtable views in a [CrateDB](https://crate.io/) database, where information about the context of the target process are stored by [Orion](https://fiware-orion.readthedocs.io/en/master/) through a [QuantumLeap](https://quantumleap.readthedocs.io/en/latest/) subscription.
+This ROSE-AP is intended as a microservice for automatic [OEE](https://www.oee.com/), and related metrics, calculation. The service works creating the appropiete table views in a [CrateDB](https://crate.io/) database, where information about the context of the target process are stored by [Orion](https://fiware-orion.readthedocs.io/en/master/) through a [QuantumLeap](https://quantumleap.readthedocs.io/en/latest/) subscription.
 
 ## Table of Contents
 
@@ -28,6 +28,9 @@ Availability refers to the percentage of time a machine is available to run, tak
 Measuring [OEE](https://www.oee.com/) is important in industrial applications as it provides a comprehensive view of the efficiency of the manufacturing process. By understanding the factors that contribute to inefficiencies, organizations can identify areas for improvement, increase production, and reduce costs. Additionally, [OEE](https://www.oee.com/) is a key indicator of the overall competitiveness of a company, as it is directly tied to production output and profitability.
 
 ## Install
+### Video Tutorial
+A [Step by Step video tutorial](https://youtu.be/EMEBSqtTPPo) is available to check the steps illustrated in the following section.
+
 ### Data Interface
 
 > **Warning**
@@ -54,7 +57,7 @@ In order to compute the [OEE](https://www.oee.com/), the ROSE-AP service must kn
  - The ideal duration of a production cycle.
  - A time step and a starting date and time to group the data.
 
-To do so, please change the [`.config`](oee_service/.config) file in the `oee_service` folder, prior to run the service, setting the following variables:
+To do so, please change the [.config](oee-service/.config) file in the `oee_service` folder, prior to run the service, setting the following variables:
 
 > **Warning**
 > 
@@ -85,9 +88,8 @@ The machine states to be considered as downtime:
 	TIMES_DOWN=Idle,In Reworking,In QC from rework,In Trashing,Timeout      [syntax: State 01,State 02,...,State nn]
 
 #### Not planned roduction time
-The machine states in which production has not been planned, in these states, availability does not decrease, unlike in TIMES_DOWN states.
-
-    TIMES_PRODUCTION_NOT_PLANNED=Offline        [syntax: State 01,State 02,...,State nn]
+Any extra state wich is not declared in `TIMES_UP` or in `TIMES_DOWN` provided by the OPC-UA server will be interpreted as a states in which production has not been planned, and for these reason, in these extra states, availability will not decrease unlike in `TIMES_DOWN` states.
+e.g. in the themo server an `Offline` state, is fired each 10 cycle.
 
 #### Time step
 The timestep to group [OEE](https://www.oee.com/) stats:
@@ -162,7 +164,7 @@ For demo purspose only, add `demo` after the flag `--build` and `up` in order to
 sudo ./services up demo
 ```
 
-- Now you can open Grafana on [localhost:3000](localhost:3000) `user:admin` `password:admin` and select predefined "RomanTIG Overall Equipment Effectiveness" dashboard to visualize [OEE](https://www.oee.com/) live data. You can freely add plots and other tables by using the "add new panel" function of Grafana, than save as a [`dashboard.json`](.\grafana\dashboards\dashboard.json) file in `.\grafana\dashboards\` directory to persist the changes after rebooting the container or the Grafana service.
+- Now you can open Grafana on [localhost:3000](localhost:3000) `user:admin` `password:admin` and select predefined "RomanTIG Overall Equipment Effectiveness" dashboard to visualize [OEE](https://www.oee.com/) live data. You can freely add plots and other tables by using the "add new panel" function of Grafana, than save as a [`dashboard.json`](grafana/dashboards/dashboard.json) file in `.\grafana\dashboards\` directory to persist the changes after rebooting the container or the Grafana service.
 
 - To stop all the services in the containers execute:
 
@@ -210,11 +212,13 @@ flowchart LR
     QC -- &nbspGood Part&nbsp--> Placing(Placing)
     QC <--> Rework(Rework)
     QC -- &nbspBad Part&nbsp--> Trashing(Trashing)
-    Placing & Trashing --> Idle(Idle) --> production{Production\nis planned?} --> Picking
+    Placing & Trashing --> Idle(Idle) --> Production{Production\nis planned?}
+    Production{Production\nis planned?} --> Picking
+    Production <--> Offline(Offline)
 
 classDef Gainsboro fill:Gainsboro,stroke:#333,color:#333
 
-class Picking,Placing,QC,Welding,upTime,Idle,Trashing,Rework,QC_Rework,production Gainsboro
+class Picking,Placing,QC,Welding,upTime,Idle,Trashing,Rework,QC_Rework,Production,Offline Gainsboro
 
 linkStyle 0,1,2 stroke:lightgreen,border-color:lightgreen;
 linkStyle 3,4,5,6,7,8 stroke:LightCoral;
@@ -262,12 +266,13 @@ The overall architecture can be seen below:
     Mongo[(MongoDB)]
     Crate[(CrateDB)]
     Grafana(Grafana):::Grafana
+    Browser(Browser)
 
     Orion & IoT-Agent <--&nbsp27017:27017&nbsp---> Mongo
     ROSE-AP <--&nbsp1026:1026&nbsp--> Orion
     Quantumleap <--&nbsp6379:6379&nbsp--> Redis
     Welder & Robot & QC & Actuator <--&nbspPROFINET&nbsp--> PLC <--&nbspOPC UA&nbsp--> IoT-Agent <--&nbsp4041:4041&nbsp--> Orion <--&nbsp8668:8668&nbsp--> Quantumleap
-    Grafana <--&nbsp4200:4200&nbsp--> Crate
+    Browser <--&nbsp3000:3000&nbsp--> Grafana <--&nbsp4200:4200&nbsp--> Crate
     ROSE-AP  & Quantumleap <--&nbsp4200:4200&nbsp--> Crate
     
 classDef DarkBlue fill:#233C68,stroke:#333,color:#FFF
@@ -276,7 +281,7 @@ classDef Gainsboro fill:Gainsboro,stroke:#333,color:#333
 classDef Grafana fill:#333,Stroke:#282828,color:#FCB35F
 classDef Claret fill:#0999D0,Stroke:#F8F8F8,color:#F8F8F8
 
-class Crate,Mongo,Redis,Welder,Robot,QC,Actuator,PLC Gainsboro
+class Crate,Mongo,Redis,Welder,Robot,QC,Actuator,PLC,Browser Gainsboro
 ```
 As it can be seen in the chart, the PLC responsible for controlling our process is connected to [Orion Context Broker](https://fiware-orion.readthedocs.io/en/latest/) through the [IoT Agent for OPC UA](https://iotagent-opcua.readthedocs.io/en/latest/), which is used to write the process states on the CrateDB (through [QuantumLeap](https://quantumleap.readthedocs.io/en/latest/)) where they will processed and read by our [OEE](https://www.oee.com/) calculator.
 
@@ -338,7 +343,7 @@ Will result in the following output:
 ```json
 {
   "type": "Float",
-  "value": 0.226730018,
+  "value": 0.280455057,
   "metadata": {}
 }
 ```
@@ -355,7 +360,7 @@ curl -X GET \
 Will result in the following output:
 
 ```json
-0.359682661
+0.280455057
 ```
 
 The attribute it's updated each time the processStatus values change.
